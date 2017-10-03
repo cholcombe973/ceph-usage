@@ -1,15 +1,11 @@
 [package]
-name = "ceph-usage"
+name = "client"
 version = "0.1.0"
 authors = ["Chris Holcombe <xfactor973@gmail.com>"]
 
-[workspace]
-
 [dependencies]
-api = { path = "api" }
-ceph-rust = {git = "https://github.com/cholcombe973/ceph-rust"}
+api = { path = "../api", version = "*"}
 clap = "*"
-client = { path = "client" }
 log = "*"
 protobuf = "*"
 simplelog = "*"

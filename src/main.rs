@@ -1,3 +1,4 @@
+extern crate api;
 extern crate ceph_rust;
 #[macro_use]
 extern crate clap;
@@ -7,13 +8,11 @@ extern crate protobuf;
 extern crate simplelog;
 extern crate zmq;
 
-mod api;
-
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
 
-use api::{ClusterUsage, PoolUsage};
+use api::service::{ClusterUsage, PoolUsage};
 use ceph_rust::ceph::*;
 use ceph_rust::rados::{Struct_rados_cluster_stat_t, Struct_rados_pool_stat_t};
 use clap::{Arg, App};

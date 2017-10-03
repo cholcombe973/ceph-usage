@@ -1,0 +1,21 @@
+[Unit]
+Description=Ceph usage gathering daemon
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/ceph-usage/environment
+ExecStart=/usr/sbin/ceph-usage \
+  --port=${LISTEN_PORT}\
+  --cephuser=${CEPH_USER}\
+  --cephconfig=${CEPH_CONFIG_FILE}
+ExecReload=/bin/kill -SIGTERM $MAINPID
+KillMode=process
+Restart=on-failure
+LimitNOFILE=infinity
+LimitNPROC=infinity
+TasksMax=infinity
+
+[Install]
+Alias=ceph-usage.service
+WantedBy=multi-user.target

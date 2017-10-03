@@ -1,0 +1,3 @@
+LISTEN_PORT=8888
+CEPH_USER=admin
+CEPH_CONFIG_FILE=/etc/ceph/ceph.conf
