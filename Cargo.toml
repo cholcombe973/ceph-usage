@@ -1,0 +1,17 @@
+[package]
+name = "ceph-usage"
+version = "0.1.0"
+authors = ["Chris Holcombe <xfactor973@gmail.com>"]
+build = "build.rs"
+
+[build-dependencies]
+protoc-rust = "*"
+protoc = "*"
+
+[dependencies]
+ceph-rust = {git = "https://github.com/cholcombe973/ceph-rust"}
+clap = "*"
+log = "*"
+protobuf = "*"
+simplelog = "*"
+zmq = "*"
