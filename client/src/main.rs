@@ -38,7 +38,7 @@ fn connect(host: &str, port: &str) -> ZmqResult<Socket> {
 }
 
 fn print_csv(cluster_info: &ClusterUsage, region: &str) {
-    println!("region,total,available,used,block,object,glance");
+    println!("region,total_kb,available_kb,used_kb,block_kb,object_kb,glance_kb");
     let mut block: u64 = 0;
     let mut object: u64 = 0;
     let mut glance: u64 = 0;
@@ -112,6 +112,10 @@ fn get_host_list(host_file: &Path) -> Result<Vec<(String, String)>> {
 }
 
 fn get_cluster_usage(s: &mut Socket) -> Result<ClusterUsage> {
+    debug!("Sending hello");
+    let _ = s.send("Hello".as_bytes(), 0).map_err(|e| {
+        Error::new(ErrorKind::Other, e)
+    });
     let msg = s.recv_bytes(0).map_err(|e| Error::new(ErrorKind::Other, e))?;
     debug!("Got msg len: {}", msg.len());
     trace!("Parsing msg {:?} as hex", msg);
@@ -127,7 +131,7 @@ fn main() {
         1 => log::LogLevelFilter::Debug,
         _ => log::LogLevelFilter::Trace,
     };
-    let hostlist = matches.value_of("hostlist").unwrap();
+    let hostlist = matches.value_of("host_list").unwrap();
     let _ = SimpleLogger::init(level, Config::default());
     info!("Starting up");
     let host_list = match get_host_list(&Path::new(hostlist)) {

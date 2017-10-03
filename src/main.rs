@@ -102,6 +102,7 @@ fn listen(config_file: &Path, user: &str, port: &str) -> Result<(), String> {
     assert!(responder.bind(&format!("tcp://*:{}", port)).is_ok());
 
     loop {
+        let _ = responder.recv_bytes(0).map_err(|e| e.to_string())?;
         debug!("Got connection");
         let usage = get_cluster_usage(user, &config_file)?;
         debug!("Sending response");
