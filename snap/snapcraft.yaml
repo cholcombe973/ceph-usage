@@ -1,0 +1,24 @@
+
+  name: ceph-usage
+  version: '0.1.0'
+  summary: Gather Ceph usage information using librados and email to users
+  description: |
+    Gather information about running Ceph clusters. Roll it up into an 
+    easy to read CSV format and then email it to users.
+
+  grade: devel
+  confinement: devmode
+  
+  apps:
+    ceph-usage:
+      command: ceph-usage
+      daemon: simple
+      plugs: [network]
+    client:
+      command: client
+      plugs: [network]
+  parts:
+    ceph-usage:
+      plugin: rust
+      rust-channel: stable
+      source: .
