@@ -1,6 +1,7 @@
 extern crate api;
 #[macro_use]
 extern crate clap;
+extern crate lettre;
 #[macro_use]
 extern crate log;
 extern crate protobuf;
@@ -13,10 +14,36 @@ use std::path::Path;
 
 use api::service::*;
 use clap::{Arg, ArgMatches, App};
+use lettre::email::{Email, EmailBuilder};
+use lettre::transport::EmailTransport;
+use lettre::transport::smtp::SmtpTransportBuilder;
 use protobuf::parse_from_bytes;
 use simplelog::{Config, SimpleLogger};
 use zmq::Socket;
 use zmq::Result as ZmqResult;
+
+fn send_email(smtp_host: &str, email: Email) -> Result<()> {
+    let mut transport = SmtpTransportBuilder::new(smtp_host)
+        .map_err(|e| Error::new(ErrorKind::Other, e))?
+        .build();
+    transport.send(email).map_err(
+        |e| Error::new(ErrorKind::Other, e),
+    )?;
+    Ok(())
+}
+
+fn build_email(to: &Vec<&str>, from: &str, usage_info: &str) -> Result<Email> {
+    let mut builder = EmailBuilder::new();
+    for t in to {
+        builder.add_to((t.as_ref(), ""));
+    }
+    builder.add_from(from);
+    builder.set_subject("Ceph usage information");
+    let email = builder.text(usage_info).build().map_err(|e| {
+        Error::new(ErrorKind::Other, e)
+    })?;
+    Ok(email)
+}
 
 /*
 CLI client to call functions over RPC
@@ -37,8 +64,11 @@ fn connect(host: &str, port: &str) -> ZmqResult<Socket> {
     Ok(requester)
 }
 
-fn print_csv(cluster_info: &ClusterUsage, region: &str) {
-    println!("region,total_kb,available_kb,used_kb,block_kb,object_kb,glance_kb");
+fn transform_csv(cluster_info: &ClusterUsage, region: &str) -> String {
+    let mut buff = String::new();
+    buff.push_str(
+        "region,total_kb,available_kb,used_kb,block_kb,object_kb,glance_kb",
+    );
     let mut block: u64 = 0;
     let mut object: u64 = 0;
     let mut glance: u64 = 0;
@@ -59,7 +89,7 @@ fn print_csv(cluster_info: &ClusterUsage, region: &str) {
         }
     }
 
-    println!(
+    buff.push_str(&format!(
         "{},{},{},{},{},{},{}",
         region,
         cluster_info.get_kb(),
@@ -68,7 +98,8 @@ fn print_csv(cluster_info: &ClusterUsage, region: &str) {
         block,
         object,
         glance
-    );
+    ));
+    buff
 }
 
 fn get_cli_args<'a>() -> ArgMatches<'a> {
@@ -82,6 +113,28 @@ fn get_cli_args<'a>() -> ArgMatches<'a> {
                     "The file with ceph clusters to call.  1 server:port combination per line",
                 )
                 .long("hostlist")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("email_to")
+                .help("Which user or users to email this information to")
+                .long("emailto")
+                .multiple(true)
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("email_from")
+                .long("emailfrom")
+                .help("The sending user")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("smtp")
+                .long("smtpserver")
+                .help("Which user or users to email this information to")
                 .required(true)
                 .takes_value(true),
         )
@@ -131,6 +184,9 @@ fn main() {
         1 => log::LogLevelFilter::Debug,
         _ => log::LogLevelFilter::Trace,
     };
+    let email_to: Vec<&str> = matches.values_of("email_to").unwrap().collect();
+    let email_from = matches.value_of("email_from").unwrap();
+    let smtp_server = matches.value_of("smtp").unwrap();
     let hostlist = matches.value_of("host_list").unwrap();
     let _ = SimpleLogger::init(level, Config::default());
     info!("Starting up");
@@ -145,8 +201,8 @@ fn main() {
         let mut s = match connect(&host.0, &host.1) {
             Ok(s) => s,
             Err(e) => {
-                error!("Error connecting to socket: {:?}", e);
-                return;
+                error!("Error connecting to socket: {:?}. Skipping host", e);
+                continue;
             }
         };
         let usage = match get_cluster_usage(&mut s) {
@@ -160,6 +216,22 @@ fn main() {
                 continue;
             }
         };
-        print_csv(&usage, &host.0);
+        let csv = transform_csv(&usage, &host.0);
+        let email = match build_email(&email_to, email_from, &csv) {
+            Ok(e) => e,
+            Err(e) => {
+                error!("Error building email: {:?}.  Skipping host", e);
+                continue;
+            }
+        };
+        match send_email(smtp_server, email) {
+            Ok(_) => {
+                info!("Email sent");
+            }
+            Err(e) => {
+                error!("Email failed to send: {:?}. Skipping host", e);
+                continue;
+            }
+        };
     }
 }
