@@ -2,6 +2,7 @@
 name = "ceph-usage"
 version = "0.1.0"
 authors = ["Chris Holcombe <xfactor973@gmail.com>"]
+readme = "README.md"
 license = "MIT"
 
 [package.metadata.deb]
@@ -11,6 +12,8 @@ section = "utility"
 assets = [
 	["target/release/client", "usr/bin/", "755"],
 	["target/release/ceph-usage", "usr/sbin/", "755"],
+	["systemd/ceph-usage.service", "etc/systemd/system/", "644"],
+	["systemd/environment", "etc/ceph-usage/environment", "664"],
 	["README.md", "usr/share/doc/ceph-usage/README", "644"],
 ]
 

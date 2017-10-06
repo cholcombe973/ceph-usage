@@ -1,4 +1,7 @@
 /target/
 **/*.rs.bk
 src/main
+snap/.snapcraft
 api/src/service.rs
+parts
+prime
