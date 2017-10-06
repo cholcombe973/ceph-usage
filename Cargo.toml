@@ -2,6 +2,17 @@
 name = "ceph-usage"
 version = "0.1.0"
 authors = ["Chris Holcombe <xfactor973@gmail.com>"]
+license = "MIT"
+
+[package.metadata.deb]
+maintainer = "Chris Holcombe <xfactor973@gmail.com>"
+depends = "$auto"
+section = "utility"
+assets = [
+	["target/release/client", "usr/bin/", "755"],
+	["target/release/ceph-usage", "usr/sbin/", "755"],
+	["README.md", "usr/share/doc/ceph-usage/README", "644"],
+]
 
 [workspace]
 
