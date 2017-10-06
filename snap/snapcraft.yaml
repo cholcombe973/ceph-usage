@@ -19,6 +19,11 @@
       plugs: [network]
   parts:
     ceph-usage:
+      build-packages:
+        - libzmq3-dev
+        - libprotobuf-dev
+        - protobuf-compiler
+        - librados-dev
       plugin: rust
       rust-channel: stable
       source: .
