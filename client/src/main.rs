@@ -14,37 +14,32 @@ use std::path::Path;
 
 use api::service::*;
 use clap::{Arg, ArgMatches, App};
-use lettre::email::{Email, EmailBuilder};
-use lettre::transport::EmailTransport;
-use lettre::transport::smtp::SmtpTransportBuilder;
+use lettre::{EmailAddress, EmailTransport, SendmailTransport, SimpleSendableEmail};
 use protobuf::parse_from_bytes;
 use simplelog::{Config, SimpleLogger};
 use zmq::Socket;
 use zmq::Result as ZmqResult;
 
-fn send_email(smtp_host: &str, email: Email) -> Result<()> {
-    let mut transport = SmtpTransportBuilder::new(smtp_host)
-        .map_err(|e| Error::new(ErrorKind::Other, e))?
-        .build();
-    transport.get_ehlo().map_err(
-        |e| Error::new(ErrorKind::Other, e),
-    )?;
-    transport.send(email).map_err(
+fn send_email(email: SimpleSendableEmail) -> Result<()> {
+    debug!("Connecting to sendmail");
+    let mut transport = SendmailTransport::new();
+    debug!("Sending email");
+    transport.send(&email).map_err(
         |e| Error::new(ErrorKind::Other, e),
     )?;
     Ok(())
 }
 
-fn build_email(to: &Vec<&str>, from: &str, usage_info: &str) -> Result<Email> {
-    let mut builder = EmailBuilder::new();
-    for t in to {
-        builder.add_to((t.as_ref(), ""));
-    }
-    builder.add_from(from);
-    builder.set_subject("Ceph usage information");
-    let email = builder.text(usage_info).build().map_err(|e| {
-        Error::new(ErrorKind::Other, e)
-    })?;
+fn build_email(to: &Vec<&str>, from: &str, usage_info: &str) -> Result<SimpleSendableEmail> {
+    let to_addrs: Vec<EmailAddress> = to.iter()
+        .map(|addr| EmailAddress::new(addr.to_string()))
+        .collect();
+    let email = SimpleSendableEmail::new(
+        EmailAddress::new(from.to_string()),
+        to_addrs,
+        "Ceph usage information".to_string(),
+        usage_info.to_string(),
+    );
     Ok(email)
 }
 
@@ -145,13 +140,6 @@ fn get_cli_args<'a>() -> ArgMatches<'a> {
                 .required(true)
                 .takes_value(true),
         )
-        .arg(
-            Arg::with_name("smtp")
-                .long("smtpserver")
-                .help("Which user or users to email this information to")
-                .required(true)
-                .takes_value(true),
-        )
         .arg(Arg::with_name("v").short("v").multiple(true).help(
             "Sets the level of verbosity",
         ))
@@ -200,7 +188,6 @@ fn main() {
     };
     let email_to: Vec<&str> = matches.values_of("email_to").unwrap().collect();
     let email_from = matches.value_of("email_from").unwrap();
-    let smtp_server = matches.value_of("smtp").unwrap();
     let hostlist = matches.value_of("host_list").unwrap();
     let _ = SimpleLogger::init(level, Config::default());
     info!("Starting up");
@@ -240,7 +227,7 @@ fn main() {
                 continue;
             }
         };
-        match send_email(smtp_server, email) {
+        match send_email(email) {
             Ok(_) => {
                 info!("Email sent");
             }
