@@ -67,37 +67,48 @@ fn connect(host: &str, port: &str) -> ZmqResult<Socket> {
 fn transform_csv(cluster_info: &ClusterUsage, region: &str) -> String {
     let mut buff = String::new();
     buff.push_str(
-        "region,total_kb,available_kb,used_kb,block_kb,object_kb,glance_kb",
+        "host,total_kb,avail_kb,used_kb,block_kb,obj_kb,glance_kb,block_size,obj_size,glance_size",
     );
+    buff.push_str("\n");
     let mut block: u64 = 0;
     let mut object: u64 = 0;
     let mut glance: u64 = 0;
+
+    let mut block_size: u32 = 0;
+    let mut object_size: u32 = 0;
+    let mut glance_size: u32 = 0;
 
     for pool in cluster_info.get_pool_info() {
         let name = pool.get_name();
         if name.contains("rbd") || name.contains("cinder") {
             // add this to block
             block += pool.get_num_kb();
+            block_size = pool.get_replication_factor();
         }
         if name.contains("glance") {
             // add this to glance
             glance += pool.get_num_kb();
+            glance_size = pool.get_replication_factor();
         }
         if name.contains("rgw") || name.contains("users") {
             // add this to object
             object += pool.get_num_kb();
+            object_size = pool.get_replication_factor();
         }
     }
 
     buff.push_str(&format!(
-        "{},{},{},{},{},{},{}",
+        "{},{},{},{},{},{},{},{},{},{}",
         region,
         cluster_info.get_kb(),
         cluster_info.get_kb_avail(),
         cluster_info.get_kb_used(),
         block,
         object,
-        glance
+        glance,
+        block_size,
+        object_size,
+        glance_size,
     ));
     buff
 }
@@ -218,6 +229,7 @@ fn main() {
         };
         trace!("cluster_usage: {:#?}", usage);
         let csv = transform_csv(&usage, &host.0);
+        trace!("csv: {}", csv);
         let email = match build_email(&email_to, email_from, &csv) {
             Ok(e) => e,
             Err(e) => {
