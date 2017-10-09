@@ -32,13 +32,17 @@ fn send_email(email: Email) -> Result<()> {
     Ok(())
 }
 
-fn build_email(to: &Vec<&str>, from: &str, usage_info: &str) -> Result<Email> {
+fn build_email(to: &Vec<&str>, from: &str, header: &str, usage_info: Vec<String>) -> Result<Email> {
+    let mut email_body = header.to_string();
+    for usage in usage_info {
+        email_body.push_str(&format!("{}\n", usage));
+    }
     let mut email = EmailBuilder::new()
     // Addresses can be specified by the tuple (email, alias)
     //.to(("user@example.org", "Firstname Lastname"))
     .from(from)
     .subject("Ceph usage information")
-    .text(usage_info);
+    .text(email_body);
 
     for t in to {
         email.add_to(t.to_string())
@@ -70,10 +74,6 @@ fn connect(host: &str, port: &str) -> ZmqResult<Socket> {
 
 fn transform_csv(cluster_info: &ClusterUsage, region: &str) -> String {
     let mut buff = String::new();
-    buff.push_str(
-        "host,total_kb,avail_kb,used_kb,block_kb,obj_kb,glance_kb,block_size,obj_size,glance_size",
-    );
-    buff.push_str("\n");
     let mut block: u64 = 0;
     let mut object: u64 = 0;
     let mut glance: u64 = 0;
@@ -210,6 +210,10 @@ fn main() {
             return;
         }
     };
+    let csv_header = "host,total_kb,avail_kb,used_kb,block_kb,obj_kb,glance_kb,\
+    block_size,obj_size,glance_size";
+
+    let mut usage: Vec<String> = Vec::new();
     for host in host_list {
         let mut s = match connect(&host.0, &host.1) {
             Ok(s) => s,
@@ -218,7 +222,7 @@ fn main() {
                 continue;
             }
         };
-        let usage = match get_cluster_usage(&mut s) {
+        let usage_info = match get_cluster_usage(&mut s) {
             Ok(u) => u,
             Err(e) => {
                 error!(
@@ -229,24 +233,25 @@ fn main() {
                 continue;
             }
         };
-        trace!("cluster_usage: {:#?}", usage);
-        let csv = transform_csv(&usage, &host.0);
+        trace!("cluster_usage: {:#?}", usage_info);
+        let csv = transform_csv(&usage_info, &host.0);
         trace!("csv: {}", csv);
-        let email = match build_email(&email_to, email_from, &csv) {
-            Ok(e) => e,
-            Err(e) => {
-                error!("Error building email: {:?}.  Skipping host", e);
-                continue;
-            }
-        };
-        match send_email(email) {
-            Ok(_) => {
-                info!("Email sent");
-            }
-            Err(e) => {
-                error!("Email failed to send: {:?}. Skipping host", e);
-                continue;
-            }
-        };
+        usage.push(csv);
     }
+    let email = match build_email(&email_to, email_from, csv_header, usage) {
+        Ok(e) => e,
+        Err(e) => {
+            error!("Error building email: {:?}", e);
+            return;
+        }
+    };
+    match send_email(email) {
+        Ok(_) => {
+            info!("Email sent");
+        }
+        Err(e) => {
+            error!("Email failed to send: {:?}", e);
+            return;
+        }
+    };
 }
