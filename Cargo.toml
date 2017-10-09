@@ -1,7 +1,7 @@
 [package]
 name = "ceph-usage"
 description = "Gather ceph cluster usage and make available over protobuf api"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Chris Holcombe <xfactor973@gmail.com>"]
 readme = "README.md"
 license = "MIT"
