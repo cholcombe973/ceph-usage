@@ -11,7 +11,7 @@ maintainer = "Chris Holcombe <xfactor973@gmail.com>"
 depends = "libboost-iostreams1.58.0 (>= 1.58.0+dfsg), libssl1.0.0 (>= 1.0.2g), zlib1g (>= 1:1.2.8.dfsg), libboost-thread1.58.0 (>= 1.58.0+dfsg), libnspr4 (>= 2:4.13.1), libboost-system1.58.0 (>= 1.58.0+dfsg), libsodium18 (>= 1.0.8), libzmq5 (>= 4.1.4), libgcc1 (>= 1:6.0.1), librados2 (>= 10.2.1), libstdc++6 (>= 5.4.0), libblkid1 (>= 2.27.1), libuuid1 (>= 2.27.1), libbz2-1.0 (>= 1.0.6), libnss3 (>= 2:3.28.4), libboost-random1.58.0 (>= 1.58.0+dfsg), libc6 (>= 2.23)"
 section = "utility"
 assets = [
-	["target/release/client", "usr/bin/", "755"],
+	["target/release/client", "usr/bin/ceph-usage-client", "755"],
 	["target/release/ceph-usage", "usr/sbin/", "755"],
 	["systemd/ceph-usage.service", "etc/systemd/system/", "644"],
 	["systemd/environment", "etc/ceph-usage/environment", "664"],
