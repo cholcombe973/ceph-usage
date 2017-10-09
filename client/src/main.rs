@@ -26,6 +26,9 @@ fn send_email(smtp_host: &str, email: Email) -> Result<()> {
     let mut transport = SmtpTransportBuilder::new(smtp_host)
         .map_err(|e| Error::new(ErrorKind::Other, e))?
         .build();
+    transport.get_ehlo().map_err(
+        |e| Error::new(ErrorKind::Other, e),
+    )?;
     transport.send(email).map_err(
         |e| Error::new(ErrorKind::Other, e),
     )?;
