@@ -9,11 +9,13 @@ extern crate simplelog;
 extern crate zmq;
 
 use std::path::Path;
+use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 
 use api::service::{ClusterUsage, PoolUsage};
 use ceph_rust::ceph::*;
+use ceph_rust::cmd::osd_pool_get;
 use ceph_rust::rados::{Struct_rados_cluster_stat_t, Struct_rados_pool_stat_t};
 use clap::{Arg, App};
 use protobuf::Message as ProtobufMsg;
@@ -24,6 +26,7 @@ use zmq::{Message, Socket};
 struct PoolInfo {
     name: String,
     usage: Struct_rados_pool_stat_t,
+    pool_size: u32,
 }
 
 struct UsageInfo {
@@ -49,9 +52,12 @@ fn get_cluster_usage(user: &str, conf_file: &Path) -> Result<UsageInfo, String> 
         let i = get_rados_ioctx(h, &p).map_err(|e| e.to_string())?;
         debug!("Running stat against the pool");
         let pool_stats = rados_stat_pool(i).map_err(|e| e.to_string())?;
+        let pool_size_str = osd_pool_get(h, &p, "size").map_err(|e| e.to_string())?;
+        let pool_size = u32::from_str(&pool_size_str).map_err(|e| e.to_string())?;
         pool_usage.push(PoolInfo {
             name: p.clone(),
             usage: pool_stats,
+            pool_size: pool_size,
         });
     }
     disconnect_from_ceph(h);
@@ -83,6 +89,7 @@ fn respond(s: &mut Socket, info: UsageInfo) -> Result<(), String> {
         encoded.set_num_rd_kb(p.usage.num_rd_kb);
         encoded.set_num_wr(p.usage.num_wr);
         encoded.set_num_wr_kb(p.usage.num_wr_kb);
+        encoded.set_replication_factor(p.pool_size);
         pool_info.push(encoded);
     }
 

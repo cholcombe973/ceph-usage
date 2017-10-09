@@ -17,6 +17,7 @@ message PoolUsage {
     required uint64 num_rd_kb = 11;
     required uint64 num_wr = 12;
     required uint64 num_wr_kb = 13;
+    required uint32 replication_factor = 14;
 }
 
 message ClusterUsage {
