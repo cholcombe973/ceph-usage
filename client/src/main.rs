@@ -211,7 +211,7 @@ fn main() {
         }
     };
     let csv_header = "host,total_kb,avail_kb,used_kb,block_kb,obj_kb,glance_kb,\
-    block_size,obj_size,glance_size";
+    block_size,obj_size,glance_size\n";
 
     let mut usage: Vec<String> = Vec::new();
     for host in host_list {
