@@ -2,6 +2,7 @@ extern crate api;
 #[macro_use]
 extern crate clap;
 extern crate lettre;
+extern crate lettre_email;
 #[macro_use]
 extern crate log;
 extern crate protobuf;
@@ -14,13 +15,14 @@ use std::path::Path;
 
 use api::service::*;
 use clap::{Arg, ArgMatches, App};
-use lettre::{EmailAddress, EmailTransport, SendmailTransport, SimpleSendableEmail};
+use lettre::{EmailTransport, SendmailTransport};
+use lettre_email::{Email, EmailBuilder};
 use protobuf::parse_from_bytes;
 use simplelog::{Config, SimpleLogger};
 use zmq::Socket;
 use zmq::Result as ZmqResult;
 
-fn send_email(email: SimpleSendableEmail) -> Result<()> {
+fn send_email(email: Email) -> Result<()> {
     debug!("Connecting to sendmail");
     let mut transport = SendmailTransport::new();
     debug!("Sending email");
@@ -30,17 +32,21 @@ fn send_email(email: SimpleSendableEmail) -> Result<()> {
     Ok(())
 }
 
-fn build_email(to: &Vec<&str>, from: &str, usage_info: &str) -> Result<SimpleSendableEmail> {
-    let to_addrs: Vec<EmailAddress> = to.iter()
-        .map(|addr| EmailAddress::new(addr.to_string()))
-        .collect();
-    let email = SimpleSendableEmail::new(
-        EmailAddress::new(from.to_string()),
-        to_addrs,
-        "Ceph usage information".to_string(),
-        usage_info.to_string(),
-    );
-    Ok(email)
+fn build_email(to: &Vec<&str>, from: &str, usage_info: &str) -> Result<Email> {
+    let mut email = EmailBuilder::new()
+    // Addresses can be specified by the tuple (email, alias)
+    //.to(("user@example.org", "Firstname Lastname"))
+    .from(from)
+    .subject("Ceph usage information")
+    .text(usage_info);
+
+    for t in to {
+        email.add_to(t.to_string())
+    }
+
+    let e = email.build().map_err(|e| Error::new(ErrorKind::Other, e))?;
+
+    Ok(e)
 }
 
 /*
@@ -81,17 +87,23 @@ fn transform_csv(cluster_info: &ClusterUsage, region: &str) -> String {
         if name.contains("rbd") || name.contains("cinder") {
             // add this to block
             block += pool.get_num_kb();
-            block_size = pool.get_replication_factor();
+            if pool.get_replication_factor() > block_size {
+                block_size = pool.get_replication_factor()
+            }
         }
         if name.contains("glance") {
             // add this to glance
             glance += pool.get_num_kb();
-            glance_size = pool.get_replication_factor();
+            if pool.get_replication_factor() > glance_size {
+                glance_size = pool.get_replication_factor();
+            }
         }
         if name.contains("rgw") || name.contains("users") {
             // add this to object
             object += pool.get_num_kb();
-            object_size = pool.get_replication_factor();
+            if pool.get_replication_factor() > object_size {
+                object_size = pool.get_replication_factor();
+            }
         }
     }
 
