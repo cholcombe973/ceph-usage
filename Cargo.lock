@@ -88,7 +88,7 @@ dependencies = [
 
 [[package]]
 name = "ceph-usage"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "api 0.1.0",
  "ceph-rust 0.1.17 (git+https://github.com/cholcombe973/ceph-rust)",

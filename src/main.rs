@@ -16,7 +16,7 @@ use std::time::Duration;
 use api::service::{ClusterUsage, PoolUsage};
 use ceph_rust::ceph::*;
 use ceph_rust::cmd::osd_pool_get;
-use ceph_rust::rados::{Struct_rados_cluster_stat_t, Struct_rados_pool_stat_t};
+use ceph_rust::rados::{rados_t, Struct_rados_cluster_stat_t, Struct_rados_pool_stat_t};
 use clap::{Arg, App};
 use protobuf::Message as ProtobufMsg;
 use protobuf::RepeatedField;
@@ -32,6 +32,21 @@ struct PoolInfo {
 struct UsageInfo {
     cluster_usage: Struct_rados_cluster_stat_t,
     pool_usage: Vec<PoolInfo>,
+}
+
+fn get_pool_size(handle: rados_t, pool: &str) -> Result<u32, String> {
+    let pool_size_str = osd_pool_get(handle, &pool, "size").map_err(
+        |e| e.to_string(),
+    )?;
+    if let Some(s) = pool_size_str.split_whitespace().last() {
+        let pool_size = u32::from_str(&s).map_err(|e| e.to_string())?;
+        debug!("pool_size: {}", pool_size);
+        return Ok(pool_size);
+    }
+    Err(format!(
+        "Invalid size string returned from librados: {}",
+        pool_size_str,
+    ))
 }
 
 fn get_cluster_usage(user: &str, conf_file: &Path) -> Result<UsageInfo, String> {
@@ -52,12 +67,10 @@ fn get_cluster_usage(user: &str, conf_file: &Path) -> Result<UsageInfo, String> 
         let i = get_rados_ioctx(h, &p).map_err(|e| e.to_string())?;
         debug!("Running stat against the pool");
         let pool_stats = rados_stat_pool(i).map_err(|e| e.to_string())?;
-        let pool_size_str = osd_pool_get(h, &p, "size").map_err(|e| e.to_string())?;
-        let pool_size = u32::from_str(&pool_size_str).map_err(|e| e.to_string())?;
         pool_usage.push(PoolInfo {
             name: p.clone(),
             usage: pool_stats,
-            pool_size: pool_size,
+            pool_size: get_pool_size(h, &p)?,
         });
     }
     disconnect_from_ceph(h);

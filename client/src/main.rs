@@ -216,6 +216,7 @@ fn main() {
                 continue;
             }
         };
+        trace!("cluster_usage: {:#?}", usage);
         let csv = transform_csv(&usage, &host.0);
         let email = match build_email(&email_to, email_from, &csv) {
             Ok(e) => e,
