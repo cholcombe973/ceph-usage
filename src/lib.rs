@@ -1,13 +1,13 @@
-extern crate ceph_rust;
+extern crate ceph;
 #[macro_use]
 extern crate log;
 
 use std::path::Path;
 use std::str::FromStr;
 
-use ceph_rust::ceph::*;
-use ceph_rust::cmd::osd_pool_get;
-use ceph_rust::rados::{rados_t, Struct_rados_cluster_stat_t, Struct_rados_pool_stat_t};
+use ceph::ceph::*;
+use ceph::cmd::{PoolOption, osd_pool_get};
+use ceph::rados::{rados_t, Struct_rados_cluster_stat_t, Struct_rados_pool_stat_t};
 
 pub struct PoolInfo {
     pub name: String,
@@ -21,7 +21,7 @@ pub struct UsageInfo {
 }
 
 pub fn get_pool_size(handle: rados_t, pool: &str) -> Result<u32, String> {
-    let pool_size_str = osd_pool_get(handle, &pool, "size").map_err(
+    let pool_size_str = osd_pool_get(handle, &pool, &PoolOption::Size).map_err(
         |e| e.to_string(),
     )?;
     if let Some(s) = pool_size_str.split_whitespace().last() {

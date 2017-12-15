@@ -29,11 +29,11 @@ name = "ceph-usage"
 path = "src/main.rs"
 
 [dependencies]
-api = { path = "api" }
-ceph-rust = {git = "https://github.com/cholcombe973/ceph-rust"}
-clap = "*"
-client = { path = "client" }
-log = "*"
-protobuf = "*"
-simplelog = "*"
-zmq = "*"
+api = { path = "api", version = "~0.1" }
+ceph = "~0.4"
+clap = "~2.29"
+client = { path = "client", version = "~0.1"}
+log = "~0.3"
+protobuf = "~1.4"
+simplelog = "~0.4"
+zmq = "~0.8"

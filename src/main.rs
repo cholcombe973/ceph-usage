@@ -1,6 +1,5 @@
 extern crate api;
 extern crate ceph_usage;
-extern crate ceph_rust;
 #[macro_use]
 extern crate clap;
 #[macro_use]
