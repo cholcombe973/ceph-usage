@@ -18,26 +18,13 @@ assets = [
 	["README.md", "usr/share/doc/ceph-usage/README", "644"],
 ]
 
-exclude = [
-	"api/*",
-	"client/*",
-]
-
 [workspace]
 
-[lib]
-name = "ceph_usage"
-path = "src/lib.rs"
-
-[[bin]]
-name = "ceph-usage"
-path = "src/main.rs"
-
 [dependencies]
-api = { path = "api", version = "~0.1" }
-ceph = "~0.4"
+api = { path = "api" }
+ceph_usage = "~0.1"
 clap = "~2.29"
-client = { path = "client", version = "~0.1"}
+client = { path = "client"}
 log = "~0.3"
 protobuf = "~1.4"
 simplelog = "~0.4"
