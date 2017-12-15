@@ -18,6 +18,11 @@ assets = [
 	["README.md", "usr/share/doc/ceph-usage/README", "644"],
 ]
 
+exclude = [
+	"api/*",
+	"client/*",
+]
+
 [workspace]
 
 [lib]
