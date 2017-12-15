@@ -20,6 +20,14 @@ assets = [
 
 [workspace]
 
+[lib]
+name = "ceph_usage"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ceph-usage"
+path = "src/main.rs"
+
 [dependencies]
 api = { path = "api" }
 ceph-rust = {git = "https://github.com/cholcombe973/ceph-rust"}
